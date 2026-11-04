@@ -1,0 +1,18 @@
+package Aula03Novembro;
+
+public class PercorreMatriz {
+    public static void main(String[] args) {
+        int[][] matriz = { {1, 2, 3}, {4, 5, 6} }; // Matriz 2x3
+
+        // LAÇO EXTERNO (i): Percorre cada LINHA de 0 até matriz.length - 1
+        for (int i = 0; i < matriz.length; i++) {
+            
+            // LAÇO INTERNO (j): Percorre cada COLUNA da linha i
+            for (int j = 0; j < matriz[i].length; j++) {
+                System.out.print(matriz[i][j] + "\t"); // Imprime elemento + TAB
+            }
+            
+            System.out.println(); // Quebra de linha ao terminar a linha i!
+        }
+    }
+}
