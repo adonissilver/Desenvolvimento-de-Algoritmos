@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laços aninhados em uma matriz – Java</title>
+<style>
+/* ===== Paleta: i = âmbar (laço externo / linhas), j = ciano (laço interno / colunas) ===== */
+:root{--bg:#0e1424;--pn:#151d33;--pn2:#1c2644;--tx:#eef1ff;--mu:#9aa6cf;--i:#ffb42e;--j:#27d3f0;--ok:#3ddc97;--er:#ff6b6b;--dur:.5s;
+--sans:"Trebuchet MS","Segoe UI",system-ui,sans-serif;--mono:Consolas,"Cascadia Mono",Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.4 var(--sans);min-height:100vh}
+header{padding:12px 20px;border-bottom:3px solid var(--pn2);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+h1{margin:0;font-size:1.5rem}
+header span{color:var(--mu)}
+b.i,.ci{color:var(--i)} b.j,.cj{color:var(--j)}
+main{display:grid;grid-template-columns:290px minmax(420px,1fr) 470px;gap:14px;padding:14px}
+@media(max-width:1250px){main{grid-template-columns:1fr 1fr}#mid{grid-column:1/3;order:-1}}
+@media(max-width:760px){main{grid-template-columns:1fr}#mid{grid-column:auto}}
+.p{background:var(--pn);border-radius:10px;padding:14px;min-width:0}
+h2{margin:0 0 10px;font-size:1.05rem;color:var(--mu);font-weight:700}
+label{display:block;margin:0 0 10px;font-size:.95rem;color:var(--mu)}
+input,select{width:100%;margin-top:3px;background:var(--bg);color:var(--tx);border:2px solid var(--pn2);border-radius:6px;padding:7px 9px;font:inherit}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;font-weight:700;color:var(--tx);background:var(--pn2);border:2px solid #34426e;border-radius:8px;padding:8px 14px;cursor:pointer}
+button:hover{background:#27345f} button.pri{background:#2563eb;border-color:#4c8bff}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--j);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+/* ===== Máquina ===== */
+#bubble{position:relative;background:#fff;color:#14203f;border-radius:14px;padding:10px 16px;font-weight:700;min-height:3.2em;display:flex;align-items:center;margin-bottom:14px}
+#bubble::after{content:"";position:absolute;left:44px;bottom:-12px;border:12px solid transparent;border-top-color:#fff;border-bottom:0}
+#bubble.err{background:var(--er);color:#fff} #bubble.err::after{border-top-color:var(--er)}
+.gears{display:flex;gap:22px;justify-content:center;margin-bottom:6px}
+.g{text-align:center;font-size:.9rem;color:var(--mu);width:150px}
+.g svg{width:120px;height:120px}
+.rot{transform-box:fill-box;transform-origin:center;transition:transform var(--dur) ease-in-out}
+.gv{fill:#fff;font:700 34px var(--sans)}
+.stage{display:flex;justify-content:center;padding:10px 0}
+#grid{position:relative;display:grid;gap:6px;--cs:96px}
+.ax{display:flex;align-items:center;justify-content:center;font:700 1rem var(--mono);min-height:30px;min-width:46px}
+.ax.i{color:var(--i)} .ax.j{color:var(--j)}
+.cell{position:relative;width:var(--cs);height:var(--cs);background:var(--pn2);border:3px solid #2c3a66;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 calc(var(--cs)*.38) var(--mono);transition:background .3s,border-color .3s}
+.cell small{position:absolute;left:6px;bottom:3px;font:.62rem var(--mono);color:var(--mu);font-weight:400}
+.cell.ro{border-color:var(--i)} .cell.co{border-color:var(--j)} .cell.ro.co{border-color:#fff}
+.cell.vis{background:#14503f} .cell.cur{background:#7a5a00;animation:pk .8s infinite}
+@keyframes pk{50%{box-shadow:0 0 0 5px rgba(255,255,255,.55)}}
+#robot{position:absolute;left:0;top:0;pointer-events:none;transition:left var(--dur) ease-in-out,top var(--dur) ease-in-out;z-index:3;filter:drop-shadow(0 3px 3px #0008)}
+#robot.idle{opacity:.55}
+#robot svg{width:100%;height:100%;display:block}
+#robot.hop svg{animation:hop .45s}
+@keyframes hop{40%{transform:translateY(-10px) rotate(-6deg)}}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}
+.stat div{background:var(--bg);border-radius:8px;padding:6px 10px;font-size:.85rem;color:var(--mu)}
+.stat b{display:block;font:700 1.5rem var(--mono);color:var(--tx)}
+.stat b.t{color:var(--ok)} .stat b.f{color:var(--er)}
+#speedw{display:flex;align-items:center;gap:8px;color:var(--mu);font-size:.95rem}
+#speedw input{width:130px}
+
+/* ===== Código ===== */
+#code{background:var(--bg);border-radius:8px;padding:8px 0;font:16.5px/1.55 var(--mono);overflow-x:auto;counter-reset:l;white-space:pre}
+.ln{padding:0 12px 0 0;border-left:5px solid transparent}
+.ln::before{counter-increment:l;content:counter(l);display:inline-block;width:2.6em;text-align:right;margin-right:1em;color:#53618f}
+.ln.on{background:#2a3a1c;border-left-color:var(--ok)} .ln.on.err{background:#4a1f26;border-left-color:var(--er)}
+.kw{color:#ff8fd0}.nm{color:#ffd37a}.cm{color:#6fcf97}.st{color:#8fd0ff}
+#warn{color:var(--er);font-weight:700;margin:0 0 8px;font-size:.95rem}
+#out{background:#000;border-radius:8px;padding:8px 12px;font:17px/1.5 var(--mono);white-space:pre;min-height:3.4em;margin:0;tab-size:4;color:#d7ffd9}
+#exc{color:var(--er);font-weight:700}
+#exp{background:var(--bg);border-left:5px solid var(--j);border-radius:6px;padding:10px 12px;min-height:5em;margin:0}
+#exp.off{color:var(--mu);border-left-color:var(--pn2)}
+.sp{margin-top:12px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><h1>Laços aninhados em uma matriz</h1><span>o laço <b class="i">externo (i)</b> controla as <b class="i">linhas</b>; o laço <b class="j">interno (j)</b> controla as <b class="j">colunas</b></span></header>
+<main>
+
+<!-- ================= CONFIGURAÇÃO ================= -->
+<section class="p" id="cfg">
+  <h2>Configuração</h2>
+  <label>Tamanho da matriz (N × N), de 2 a 6<input id="N" type="number" min="2" max="6" value="3"></label>
+  <div class="two">
+    <label><b class="i">i</b> inicial<input id="i0" type="number" min="-1" max="6" value="0"></label>
+    <label><b class="j">j</b> inicial<input id="j0" type="number" min="-1" max="6" value="0"></label>
+    <label>Incremento de <b class="i">i</b><input id="si" type="number" min="1" max="3" value="1"></label>
+    <label>Incremento de <b class="j">j</b><input id="sj" type="number" min="1" max="3" value="1"></label>
+  </div>
+  <label>Condição de parada (vale para i e j)
+    <select id="cond"><option value="lt">i &lt; N  (correto)</option><option value="le1">i &lt;= N - 1  (correto)</option><option value="le">i &lt;= N  (erro: passa do limite)</option></select></label>
+  <label>O que escrever em cada célula
+    <select id="mode"><option value="cont">Contador sequencial</option><option value="sum">i + j</option><option value="mul">i * j</option><option value="val">Valor digitado</option></select></label>
+  <label id="valw" hidden>Valor digitado<input id="val" type="number" value="7"></label>
+  <div class="row"><button class="pri" id="gen">Gerar código</button><button id="rst">Reiniciar</button></div>
+  <p style="color:var(--mu);font-size:.85rem;margin-top:14px">Dica: troque a condição para <b>i &lt;= N</b> e veja o Java lançar uma exceção. Atalhos: espaço = play/pausa, ← → = passo.</p>
+</section>
+
+<!-- ================= MÁQUINA ================= -->
+<section class="p" id="mid">
+  <div id="bubble"></div>
+  <div class="gears">
+    <div class="g"><svg id="gi" viewBox="0 0 120 120"></svg><b class="i">i</b> · laço externo<br>avança 1 dente por linha</div>
+    <div class="g"><svg id="gj" viewBox="0 0 120 120"></svg><b class="j">j</b> · laço interno<br>1 volta completa por linha</div>
+  </div>
+  <div class="stage"><div id="grid"></div></div>
+  <div class="stat" id="stat"></div>
+  <div class="row" style="align-items:center;margin-top:12px">
+    <button id="bk">⏮ Voltar</button><button class="pri" id="pl">▶ Play</button><button id="nx">Passo ⏭</button>
+    <div id="speedw">Velocidade <input id="spd" type="range" min="1" max="10" value="4"></div>
+    <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--tx)"><input id="explain" type="checkbox" style="width:auto;margin:0"> Modo Explicar</label>
+  </div>
+</section>
+
+<!-- ================= CÓDIGO ================= -->
+<section class="p" id="right">
+  <h2>Código Java gerado</h2>
+  <div id="warn" hidden></div>
+  <div id="code"></div>
+  <h2 class="sp">Saída no console</h2>
+  <pre id="out"></pre>
+  <h2 class="sp">Explicação do passo</h2>
+  <p id="exp"></p>
+</section>
+</main>
+
+<script>
+/* ============ Utilidades e condições de parada ============ */
+const $ = s => document.querySelector(s);
+const COND = {
+  lt:  {t:'< N',      op:'<',  r:N => N},
+  le1: {t:'<= N - 1', op:'<=', r:N => N - 1},
+  le:  {t:'<= N',     op:'<=', r:N => N}
+};
+const test = (c, x) => { const k = COND[c.cond]; return k.op === '<' ? x < k.r(c.N) : x <= k.r(c.N); };
+let cfg, S = [], idx = 0, timer = null, lines = [];
+
+function readCfg(){
+  const g = (id, a, b) => { const e = $('#' + id); let v = parseInt(e.value); if (isNaN(v)) v = a; v = Math.max(a, Math.min(b, v)); e.value = v; return v; };
+  return {N:g('N',2,6), i0:g('i0',-1,6), j0:g('j0',-1,6), si:g('si',1,3), sj:g('sj',1,3),
+          cond:$('#cond').value, mode:$('#mode').value, val:g('val',-999,999)};
+}
+
+/* ============ Geração do código Java ============ */
+function genLines(c){
+  const ct = COND[c.cond].t, up = (v, s) => s === 1 ? v + '++' : v + ' += ' + s;
+  const asg = {cont:'cont++', sum:'i + j', mul:'i * j', val:String(c.val)}[c.mode];
+  const L = [];
+  const a = (k, t) => L.push({k, t});
+  a(null, 'public class Main {');
+  a(null, '    public static void main(String[] args) {');
+  a('N',  `        int N = ${c.N};  // tamanho da matriz`);
+  a('mat','        int[][] m = new int[N][N];  // N linhas x N colunas, tudo 0');
+  if (c.mode === 'cont') a('cont', '        int cont = 1;  // contador sequencial');
+  a('outer', `        for (int i = ${c.i0}; i ${ct}; ${up('i', c.si)}) {  // laço externo: LINHAS`);
+  a('inner', `            for (int j = ${c.j0}; j ${ct}; ${up('j', c.sj)}) {  // laço interno: COLUNAS`);
+  a('assign',`                m[i][j] = ${asg};  // atribuição na célula`);
+  a('print', '                System.out.print(m[i][j] + "\\t");');
+  a(null,    '            }');
+  a('nl',    '            System.out.println();  // fim da linha');
+  a(null,    '        }');
+  a(null,    '    }');
+  a(null,    '}');
+  return L;
+}
+function hl(s){
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/(\/\/.*$)|("(?:[^"\\]|\\.)*")|\b(public|class|static|void|int|for|new|String)\b|(-?\b\d+\b)/g,
+    (m, cm, st, kw, nm) => cm ? `<span class="cm">${cm}</span>` : st ? `<span class="st">${st}</span>` : kw ? `<span class="kw">${kw}</span>` : `<span class="nm">${nm}</span>`);
+}
+
+/* ============ Simulação fiel ao Java: gera todos os passos ============ */
+function build(c){
+  const N = c.N, K = COND[c.cond], ct = K.t, rhs = K.r(N);
+  const ev = (v, ok) => `${v} ${K.op} ${rhs} → ${ok}`;
+  const bad = x => x < 0 || x >= N, clamp = x => Math.max(0, Math.min(N - 1, x));
+  const up = (v, s) => s === 1 ? v + '++' : v + ' += ' + s;
+  const cnt = (st, sp) => { let n = 0, x = st; while (test(c, x)) { n++; x += sp; } return n; };
+  const R = cnt(c.i0, c.si), C = cnt(c.j0, c.sj);
+  const m = Array.from({length:N}, () => Array(N).fill(0));
+  const s = {i:null, j:null, ci:null, cj:null, pos:null, iter:0, inner:0, it:0, jt:0, out:'', exc:null, vis:[]};
+  const out = []; out.tot = {R, C, T:R * C};
+  const P = (ln, msg, exp, o) => { Object.assign(s, o || {}); out.push({...s, ln, msg, exp, m:m.map(r => r.slice()), vis:s.vis.slice()}); };
+  let cont = 1;
+
+  P(null, 'Pronto! Aperte Play ou Passo.', 'Escolha as configurações, leia o código à direita e acompanhe a máquina executá-lo linha por linha, como um depurador.');
+  P('N', `Declaro N = ${N}: a matriz terá ${N} linhas e ${N} colunas.`, 'N guarda o tamanho. Uma matriz int[][] em Java é um vetor de vetores: N linhas, cada uma com N colunas.');
+  P('mat', `Crio a matriz ${N}x${N}. Todas as células começam com 0.`, 'new int[N][N] reserva as N×N posições e o Java inicializa cada int com 0. Os índices vão de 0 até N-1 (nunca até N).');
+  if (c.mode === 'cont') P('cont', 'Crio o contador cont = 1.', 'cont é uma variável comum: a cada cont++ ele guarda o valor atual e depois soma 1.');
+
+  let i = c.i0, ok = test(c, i);
+  P('outer', `Laço externo: i = ${i}. Testo i ${ct}: ${ev(i, ok)}.`,
+    'A primeira parte do for executa uma única vez (i = valor inicial). Em seguida o Java testa a condição: só entra no bloco se ela for true.', {i, ci:ok});
+  while (ok) {
+    let j = c.j0, okj = test(c, j);
+    P('inner', `Entro no laço interno: j reinicia em ${j}. Robô volta ao início da linha ${i}. Testo ${ev(j, okj)}.`,
+      'O laço interno é criado de novo a cada iteração do externo, por isso j volta ao valor inicial. É isso que faz a matriz ser percorrida linha por linha.',
+      {i, j, cj:okj, inner:s.inner + 1, pos:[clamp(i), clamp(j)]});
+    while (okj) {
+      if (bad(i) || bad(j)) {
+        const b = bad(i) ? i : j;
+        P('assign', `💥 m[${i}][${j}] não existe! Índice ${b} fora de 0..${N - 1}.`,
+          `O Java verifica os limites a cada acesso. Como o índice ${b} está fora de 0..${N - 1}, o programa para com ArrayIndexOutOfBoundsException. Use "< N" (ou "<= N - 1") para parar antes.`,
+          {exc:`Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index ${b} out of bounds for length ${N}`, pos:[i, j]});
+        return out;
+      }
+      const old = m[i][j], v = {cont:cont, sum:i + j, mul:i * j, val:c.val}[c.mode];
+      if (c.mode === 'cont') cont++;
+      m[i][j] = v; s.vis.push(i + ',' + j);
+      P('assign', `Robô em [${i}][${j}]: lê ${old}, calcula e escreve ${v}.`,
+        `m[${i}][${j}] guardava ${old} (valor inicial) e agora guarda ${v}. A célula é escolhida pelos índices: i = linha ${i}, j = coluna ${j}.`,
+        {iter:s.iter + 1, pos:[i, j]});
+      s.out += v + '\t';
+      P('print', `Imprimo m[${i}][${j}] = ${v} no console.`, 'print escreve sem quebrar a linha, então os valores de uma mesma linha da matriz ficam lado a lado.');
+      j += c.sj; okj = test(c, j);
+      P('inner', okj ? `${up('j', c.sj)} → j = ${j}. ${ev(j, okj)}: próxima coluna.`
+                     : `${up('j', c.sj)} → j = ${j}. ${ev(j, okj)}: j chegou ao limite, o laço interno termina.`,
+        okj ? 'Depois de cada volta, o incremento roda e a condição é testada de novo. Enquanto for true, o interno continua na mesma linha.'
+            : 'A condição ficou false: o laço interno acabou. Só agora o controle volta ao laço externo.',
+        {j, cj:okj, jt:s.jt + 1});
+    }
+    s.out += '\n';
+    P('nl', `println() quebra a linha: terminei a linha ${i}.`, 'Esta instrução pertence ao laço externo, então roda uma vez por linha, depois que o interno completou todas as colunas.');
+    i += c.si; ok = test(c, i);
+    P('outer', ok ? `${up('i', c.si)} → i = ${i}. Engrenagem de i avança um dente. ${ev(i, ok)}: nova linha.`
+                  : `${up('i', c.si)} → i = ${i}. ${ev(i, ok)}: laço externo termina.`,
+      ok ? 'Só agora i muda. Para cada valor de i, o laço interno executa todas as suas iterações antes de i avançar.'
+         : 'A condição do laço externo ficou false. Fim da matriz.',
+      {i, ci:ok, it:s.it + 1});
+  }
+  P('end', `Fim! ${s.iter} células preenchidas (${R} linhas × ${C} colunas).`,
+    `Total = (voltas do externo) × (voltas do interno) = ${R} × ${C} = ${R * C} iterações, percorridas por linha (ordem row-major).`);
+  return out;
+}
+
+/* ============ Desenho ============ */
+const gearSVG = col => {
+  let t = ''; for (let k = 0; k < 12; k++) t += `<rect x="53" y="2" width="14" height="20" rx="3" transform="rotate(${k * 30} 60 60)"/>`;
+  return `<g class="rot" style="fill:${col}">${t}<circle cx="60" cy="60" r="46"/><circle cx="60" cy="60" r="31" fill="#0e1424"/><rect x="57" y="24" width="6" height="14" fill="#0e1424"/></g><text class="gv" x="60" y="72" text-anchor="middle">–</text>`;
+};
+const robotSVG = `<svg viewBox="0 0 60 70"><line x1="30" y1="2" x2="30" y2="12" stroke="#9aa6cf" stroke-width="3"/><circle cx="30" cy="4" r="4" fill="#ff6b6b"/>
+<rect x="9" y="12" width="42" height="24" rx="7" fill="#cfd8ff"/><g id="eyes"><circle cx="21" cy="24" r="5" fill="#14203f"/><circle cx="39" cy="24" r="5" fill="#14203f"/></g>
+<rect x="14" y="38" width="32" height="18" rx="5" fill="#4c8bff"/><rect x="3" y="40" width="9" height="5" rx="2" fill="#cfd8ff"/><rect x="48" y="40" width="9" height="5" rx="2" fill="#cfd8ff"/>
+<circle cx="19" cy="62" r="7" fill="#ffb42e"/><circle cx="41" cy="62" r="7" fill="#ffb42e"/></svg>`;
+
+function buildGrid(){
+  const N = cfg.N, g = $('#grid');
+  g.style.setProperty('--cs', `min(${[0,0,110,96,84,74,64][N]}px, ${Math.floor(60 / (N + 1))}vw)`);
+  g.style.gridTemplateColumns = `auto repeat(${N}, auto)`;
+  let h = '<div></div>';
+  for (let j = 0; j < N; j++) h += `<div class="ax j">j=${j}</div>`;
+  for (let i = 0; i < N; i++) {
+    h += `<div class="ax i">i=${i}</div>`;
+    for (let j = 0; j < N; j++) h += `<div class="cell" id="c${i}_${j}">0<small>[${i}][${j}]</small></div>`;
+  }
+  g.innerHTML = h + `<div id="robot" class="idle">${robotSVG}</div>`;
+}
+
+function render(){
+  const f = S[idx], N = cfg.N;
+  document.querySelectorAll('#code .ln').forEach(e => { const on = !!f.ln && e.dataset.k === f.ln; e.classList.toggle('on', on); e.classList.toggle('err', on && !!f.exc); });
+  // células
+  const pos = f.pos, running = f.ln === 'assign' || f.ln === 'print';
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const e = $(`#c${i}_${j}`);
+    e.firstChild.nodeValue = f.m[i][j];
+    e.className = 'cell' + (f.vis.includes(i + ',' + j) ? ' vis' : '') + (running && !f.exc && pos && pos[0] === i && pos[1] === j ? ' cur' : '')
+      + (f.i === i && f.ln ? ' ro' : '') + (f.j === j && f.ln ? ' co' : '');
+  }
+  // robô
+  const rb = $('#robot'), c0 = $('#c0_0'), c1 = $('#c1_1'), cw = c0.offsetWidth, rs = cw * .58;
+  const p = pos || [0, 0], dx = c1.offsetLeft - c0.offsetLeft, dy = c1.offsetTop - c0.offsetTop;
+  rb.style.width = rb.style.height = rs + 'px';
+  rb.style.left = (c0.offsetLeft + p[1] * dx + cw - rs * .95) + 'px';
+  rb.style.top  = (c0.offsetTop + p[0] * dy + cw - rs * .98) + 'px';
+  rb.classList.toggle('idle', !pos);
+  $('#eyes').innerHTML = f.exc ? '<path d="M16 19l10 10M26 19L16 29M34 19l10 10M44 19L34 29" stroke="#ff6b6b" stroke-width="3"/>'
+    : '<circle cx="21" cy="24" r="5" fill="#14203f"/><circle cx="39" cy="24" r="5" fill="#14203f"/>';
+  rb.classList.remove('hop'); void rb.offsetWidth; if (idx) rb.classList.add('hop');
+  // engrenagens
+  $('#gi .rot').style.transform = `rotate(${f.it * 360 / N}deg)`; $('#gj .rot').style.transform = `rotate(${f.jt * 360 / N}deg)`;
+  $('#gi .gv').textContent = f.i === null ? '–' : f.i; $('#gj .gv').textContent = f.j === null ? '–' : f.j;
+  // balão, estado, console, explicação
+  const bb = $('#bubble'); bb.textContent = f.exc ? f.msg : '🤖 ' + f.msg; bb.classList.toggle('err', !!f.exc);
+  const tf = v => v === null ? '<b>–</b>' : `<b class="${v ? 't' : 'f'}">${v}</b>`, T = S.tot;
+  $('#stat').innerHTML = `<div><span class="ci">i</span> (linha)<b class="ci">${f.i ?? '–'}</b></div><div><span class="cj">j</span> (coluna)<b class="cj">${f.j ?? '–'}</b></div>
+    <div>condição de i${tf(f.ci)}</div><div>condição de j${tf(f.cj)}</div>
+    <div>iteração (atribuições)<b>${f.iter} / ${T.T}</b></div><div>voltas do laço interno<b>${f.inner} / ${T.R}</b></div>
+    <div>total previsto<b>${T.R} × ${T.C} = ${T.T}</b></div>`;
+  $('#out').innerHTML = (f.out.replace(/&/g, '&amp;').replace(/</g, '&lt;') || ' ') + (f.exc ? `<span id="exc">\n${f.exc}\n\tat Main.main(Main.java)</span>` : '');
+  const ex = $('#explain').checked, e = $('#exp'); e.className = ex ? '' : 'off';
+  e.textContent = ex ? f.exp : 'Ative o "Modo Explicar" para pausar em cada passo e ler o porquê.';
+}
+
+/* ============ Controles ============ */
+const delay = () => 1600 - $('#spd').value * 140;
+function setSpeed(){ document.documentElement.style.setProperty('--dur', Math.min(.6, delay() * .0006) + 's'); if (timer) { clearInterval(timer); timer = setInterval(adv, delay()); } }
+function pause(){ clearInterval(timer); timer = null; $('#pl').textContent = '▶ Play'; }
+function adv(){ if (idx >= S.length - 1) return pause(); idx++; render(); if (idx >= S.length - 1) pause(); }
+function play(){
+  if (timer) return pause();
+  if (idx >= S.length - 1) { idx = 0; render(); }
+  adv();
+  if (!$('#explain').checked && idx < S.length - 1) { timer = setInterval(adv, delay()); $('#pl').textContent = '⏸ Pausar'; }
+}
+function regen(){
+  pause(); cfg = readCfg(); $('#valw').hidden = cfg.mode !== 'val';
+  lines = genLines(cfg); $('#code').innerHTML = lines.map(l => `<div class="ln" data-k="${l.k || ''}">${hl(l.t)}</div>`).join('');
+  S = build(cfg); idx = 0; buildGrid(); setSpeed();
+  const w = $('#warn'), hasExc = S.some(x => x.exc); w.hidden = !hasExc;
+  w.textContent = hasExc ? '⚠ Com esta configuração o Java lança ArrayIndexOutOfBoundsException.' : '';
+  render();
+}
+['N','i0','j0','si','sj','cond','mode','val'].forEach(id => $('#' + id).addEventListener('change', regen));
+$('#gen').onclick = regen;
+$('#rst').onclick = () => { pause(); idx = 0; render(); };
+$('#pl').onclick = play;
+$('#nx').onclick = () => { pause(); if (idx < S.length - 1) { idx++; render(); } };
+$('#bk').onclick = () => { pause(); if (idx > 0) { idx--; render(); } };
+$('#spd').oninput = setSpeed;
+$('#explain').onchange = () => { pause(); render(); };
+document.addEventListener('keydown', e => {
+  if (/INPUT|SELECT/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (e.key === ' ') { e.preventDefault(); play(); } else if (e.key === 'ArrowRight') $('#nx').click(); else if (e.key === 'ArrowLeft') $('#bk').click();
+});
+window.addEventListener('resize', () => render());
+$('#gi').innerHTML = gearSVG('#ffb42e'); $('#gj').innerHTML = gearSVG('#27d3f0');
+regen();
+</script>
+</body>
+</html>
